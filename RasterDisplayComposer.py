@@ -26,6 +26,9 @@ from PyQt4.QtGui import QAction, QIcon
 import resources
 
 from qgis.core import QGis, QgsMapLayerRegistry, QgsRasterLayer
+import gdal
+import osr
+from gdalconst import GA_ReadOnly
 
 # Import the code for the DockWidget
 from RasterDisplayComposer_dockwidget import RasterDisplayComposerDockWidget
@@ -322,17 +325,108 @@ class RasterDisplayComposer:
         if self.dockwidget.checkBox_noData.isChecked():
             no_data_option = "-srcnodata " + str(self.dockwidget.spinBox_noData.value())
 
-        print layers_to_append
+        # print layers_to_append
 
-        command = ["gdalbuildvrt -separate", no_data_option, "/tmp/RasterDisplayComposer.VRT"] + layers_to_append
-        print " ".join(command)
-        os.system(" ".join(command))
+        rasterToLoad = "/tmp/RasterDisplayComposer.VRT"
+        # command = ["gdalbuildvrt -separate", no_data_option, rasterToLoad] + layers_to_append
+        # print " ".join(command)
+        # os.system(" ".join(command))
+        root_vrt = createVRT(layers_to_append)
+        # rasterToLoad = '\'' + ET.tostring(root_vrt) + '\''
+        writeVRT(root_vrt, rasterToLoad)
+
         band_name = self.dockwidget.lineEdit_bandName.text()
-        rasterLayer = QgsRasterLayer("/tmp/RasterDisplayComposer.VRT", band_name)
+        rasterLayer = QgsRasterLayer(rasterToLoad, band_name)
 
         QgsMapLayerRegistry.instance().addMapLayer(rasterLayer)
 
 
 
+def getInfoFromImage(image):
 
+    dicImage = {"image": image}
+
+    dataset = gdal.Open(str(image), GA_ReadOnly)
+    if dataset is not None:
+        dicImage["size"] = [dataset.RasterXSize, dataset.RasterYSize]
+        dicImage["numberOfBands"] = dataset.RasterCount
+        dicImage["projection"] = dataset.GetProjection()
+        geotransform = dataset.GetGeoTransform()
+        if geotransform is not None:
+            dicImage["origin"] = [geotransform[0], geotransform[3]]
+            dicImage["pixelSize"] = [geotransform[1], geotransform[5]]
+            #dicImage["geotransform"] = geotransform
+            geoTransformListStr = [str(x) for x in geotransform]
+            dicImage["geotransform"] = ", ".join(geoTransformListStr)
+        spatialReference = osr.SpatialReference()
+        spatialReference.ImportFromWkt(dataset.GetProjectionRef())
+        dicImage["intEpsgCode"] = str(spatialReference.GetAuthorityCode("PROJCS"))
+        #get info from band 1
+        band = dataset.GetRasterBand(1)
+        dicImage["dataType"]=gdal.GetDataTypeName(band.DataType)
+        dicImage["noData"]=band.GetNoDataValue()
+
+    print dicImage
+    return dicImage
+
+
+def createVRT(listOfImages):
+    """
+    Create the xml of the vrt to avoid file creation on disk
+    :param listOfImages:
+    :return:
+    """
+    vrtFilename = None
+    infoFromImage = getInfoFromImage(listOfImages[0])
+    rootNode = ET.Element( 'VRTDataset' )
+    totalXSize = infoFromImage["size"][0]
+    totalYSize = infoFromImage["size"][1]
+    dataType = infoFromImage["dataType"]
+
+    #for each band red green blue
+    for index, image in enumerate(listOfImages):
+        #  <VRTRasterBand dataType="Byte" band="1">
+        bandNode = ET.SubElement( rootNode, "VRTRasterBand", {'dataType':str(dataType), 'band': str( index+1 )} )
+
+        #<NoDataValue>-100.0</NoDataValue>
+        no_data = infoFromImage["noData"]
+        if no_data:
+            node = ET.SubElement(bandNode, 'NoDataValue')
+            node.text = no_data
+        # <SourceFilename relativeToVRT="1">nine_band.dat</SourceFilename>
+        sourceNode = ET.SubElement(bandNode, 'SimpleSource')
+
+        node = ET.SubElement(sourceNode, 'SourceFilename', {'relativeToVRT': '1'})
+        node.text = image
+        # <SourceBand>1</SourceBand>
+        node = ET.SubElement(sourceNode, 'SourceBand')
+        node.text = str(1)
+        # <SrcRect xOff="0" yOff="0" xSize="1000" ySize="1000"/>
+        node = ET.SubElement(sourceNode, 'SrcRect', {'xOff': '0', 'yOff': '0', 'xSize': str(totalXSize), 'ySize': str(totalYSize)})
+        # <DstRect xOff="0" yOff="0" xSize="1000" ySize="1000"/>
+        node = ET.SubElement(sourceNode, 'DstRect', {'xOff': '0', 'yOff': '0', 'xSize': str(totalXSize), 'ySize': str(totalYSize)})
+        #bandNode.attrib['dataType'] = str(dataType)
+
+    rootNode.attrib['rasterXSize'] = str(totalXSize)
+    rootNode.attrib['rasterYSize'] = str(totalYSize)
+    node = ET.SubElement(rootNode, 'SRS')
+    node.text = "EPSG:" + str(infoFromImage["intEpsgCode"]) # projection
+
+    geotransformNode = ET.SubElement(rootNode, 'GeoTransform')
+    geotransformNode.text = infoFromImage["geotransform"]
+    return rootNode
+
+
+
+def writeVRT(vrt_xml, output_filename):
+    """
+    Write the given xml in the given output_filename
+    :param vrt_xml:
+    :param output_filename:
+    :return:
+    """
+    tree = ET.ElementTree(vrt_xml)
+    f = open(output_filename, "w")
+    f.write(ET.tostring(tree, pretty_print = True))
+    f.close()
 
