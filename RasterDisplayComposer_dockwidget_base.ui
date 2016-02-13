@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>232</width>
-    <height>141</height>
+    <width>547</width>
+    <height>544</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,12 +15,67 @@
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QGridLayout" name="gridLayout">
+    <item row="2" column="1">
+     <widget class="QComboBox" name="comboBox_blue"/>
+    </item>
+    <item row="4" column="0">
+     <widget class="QCheckBox" name="checkBox_noData">
+      <property name="text">
+       <string>No data</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>Green band</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QComboBox" name="comboBox_red"/>
+    </item>
+    <item row="1" column="1">
+     <widget class="QComboBox" name="comboBox_green"/>
+    </item>
     <item row="0" column="0">
      <widget class="QLabel" name="label">
       <property name="text">
-       <string>Replace this QLabel
-with the desired
-plugin content.</string>
+       <string>Red band</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>Blue band</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="QSpinBox" name="spinBox_noData"/>
+    </item>
+    <item row="5" column="0">
+     <widget class="QCheckBox" name="checkBox_alpha">
+      <property name="text">
+       <string>Alpha channel</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1">
+     <widget class="QComboBox" name="comboBox_alpha"/>
+    </item>
+    <item row="6" column="1">
+     <widget class="QPushButton" name="pushButton_load">
+      <property name="text">
+       <string>Load</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0">
+     <widget class="QPushButton" name="pushButton_save">
+      <property name="text">
+       <string>Save</string>
       </property>
      </widget>
     </item>
