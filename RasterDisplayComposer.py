@@ -327,7 +327,8 @@ class RasterDisplayComposer:
         command = ["gdalbuildvrt -separate", no_data_option, "/tmp/RasterDisplayComposer.VRT"] + layers_to_append
         print " ".join(command)
         os.system(" ".join(command))
-        rasterLayer = QgsRasterLayer("/tmp/RasterDisplayComposer.VRT", "RasterDisplayComposer")
+        band_name = self.dockwidget.lineEdit_bandName.text()
+        rasterLayer = QgsRasterLayer("/tmp/RasterDisplayComposer.VRT", band_name)
 
         QgsMapLayerRegistry.instance().addMapLayer(rasterLayer)
 
