@@ -20,15 +20,17 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt, SIGNAL, QObject
 from PyQt4.QtGui import QAction, QIcon
 # Initialize Qt resources from file resources.py
 import resources
 
+from qgis.core import QGis, QgsMapLayerRegistry, QgsRasterLayer
+
 # Import the code for the DockWidget
 from RasterDisplayComposer_dockwidget import RasterDisplayComposerDockWidget
 import os.path
-
+from lxml import etree as ET
 
 class RasterDisplayComposer:
     """QGIS Plugin Implementation."""
@@ -72,6 +74,43 @@ class RasterDisplayComposer:
 
         self.pluginIsActive = False
         self.dockwidget = None
+
+        self.loaded_raster_layers = {}
+        self.dock_is_hiden = True
+
+        self.preLoad()
+
+
+    def preLoad(self):
+        """
+        Preload the plugin interface
+        :return:
+        """
+        """
+        :return:
+        """
+        if not self.pluginIsActive:
+            self.pluginIsActive = True
+
+            #print "** STARTING RasterDisplayComposer"
+
+            # dockwidget may not exist if:
+            #    first run of plugin
+            #    removed on close (see self.onClosePlugin method)
+            if self.dockwidget == None:
+                # Create the dockwidget (after translation) and keep reference
+                self.dockwidget = RasterDisplayComposerDockWidget()
+
+            # connect to provide cleanup on closing of dockwidget
+            self.dockwidget.closingPlugin.connect(self.onClosePlugin)
+
+            # show the dockwidget
+            # TODO: fix to allow choice of dock location
+            self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.dockwidget)
+            self.initDockWidgetSignals()
+            self.updateLoadedrasterLayers()
+            self.loadComboBox()
+
 
 
     # noinspection PyMethodMayBeStatic
@@ -173,6 +212,8 @@ class RasterDisplayComposer:
             text=self.tr(u'Raster Display Composer'),
             callback=self.run,
             parent=self.iface.mainWindow())
+        #QObject.connect(QgsMapLayerRegistry.instance(), SIGNAL(""), )
+        QgsMapLayerRegistry.instance().layersAdded.connect(self.updateLoadedrasterLayers)
 
     #--------------------------------------------------------------------------
 
@@ -211,23 +252,70 @@ class RasterDisplayComposer:
     def run(self):
         """Run method that loads and starts the plugin"""
 
-        if not self.pluginIsActive:
-            self.pluginIsActive = True
-
-            #print "** STARTING RasterDisplayComposer"
-
-            # dockwidget may not exist if:
-            #    first run of plugin
-            #    removed on close (see self.onClosePlugin method)
-            if self.dockwidget == None:
-                # Create the dockwidget (after translation) and keep reference
-                self.dockwidget = RasterDisplayComposerDockWidget()
-
-            # connect to provide cleanup on closing of dockwidget
-            self.dockwidget.closingPlugin.connect(self.onClosePlugin)
-
-            # show the dockwidget
-            # TODO: fix to allow choice of dock location
-            self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.dockwidget)
+        if self.dock_is_hiden:
             self.dockwidget.show()
+        else:
+            self.dockwidget.hide()
+
+
+    def initDockWidgetSignals(self):
+        self.dockwidget.pushButton_load.clicked.connect(self.loadRGBImage)
+
+
+    def updateLoadedrasterLayers(self, layers_added = []):
+        """
+        Re-write the dictionnary of loaded raster layers with new layers
+        :param layers_added:
+        :return:
+        """
+        # print layers_added
+        # print "self.iface.mapCanvas().layers()", self.iface.mapCanvas().layers()
+        # print "legendInterface().layers()", self.iface.legendInterface().layers()
+        self.loaded_raster_layers = {}
+
+        for layer in self.iface.mapCanvas().layers() + layers_added:
+            if layer.type() == layer.RasterLayer:
+                # print layer
+                # print layer.source()
+                # print layer.name()
+                # print layer.type()
+                self.loaded_raster_layers[layer.name()] = layer.source()
+        self.loadComboBox()
+
+
+    def loadComboBox(self):
+        """
+        Fill in the combobox with name of the loaded raster layers
+        :return:
+        """
+        for combo_box in [self.dockwidget.comboBox_red, self.dockwidget.comboBox_green,
+                          self.dockwidget.comboBox_blue, self.dockwidget.comboBox_alpha]:
+            combo_box.clear()
+            combo_box.addItems(self.loaded_raster_layers.keys())
+
+    def loadRGBImage(self):
+        """
+        Get path of selected images, run gdalbuildvrt and loa the result in qgis
+        :return:
+        """
+        layers_to_append = []
+        for combo_box in [self.dockwidget.comboBox_red, self.dockwidget.comboBox_green,
+                          self.dockwidget.comboBox_blue]:
+            layers_to_append.append(self.loaded_raster_layers[combo_box.currentText()])
+        print layers_to_append
+        if self.dockwidget.checkBox_alpha.isChecked():
+            layers_to_append.append(self.loaded_raster_layers[self.dockwidget.comboBox_alpha.currentText()])
+
+        print layers_to_append
+
+        command = ["gdalbuildvrt -separate", "/tmp/RasterDisplayComposer.VRT"] + layers_to_append
+        print " ".join(command)
+        os.system(" ".join(command))
+        rasterLayer = QgsRasterLayer("/tmp/RasterDisplayComposer.VRT", "RasterDisplayComposer")
+
+        QgsMapLayerRegistry.instance().addMapLayer(rasterLayer)
+
+
+
+
 
