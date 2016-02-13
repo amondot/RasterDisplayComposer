@@ -23,11 +23,18 @@
 
 import os
 
-from PyQt4 import QtGui, uic
+from PyQt4 import QtGui, QtCore, uic
 from PyQt4.QtCore import pyqtSignal
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'RasterDisplayComposer_dockwidget_base.ui'))
+
+# import loggin for debug messages
+import logging
+logging.basicConfig()
+# create logger
+logger = logging.getLogger('RasterDisplayComposer_dockWidget')
+logger.setLevel(logging.INFO)
 
 
 class RasterDisplayComposerDockWidget(QtGui.QDockWidget, FORM_CLASS):
@@ -42,7 +49,41 @@ class RasterDisplayComposerDockWidget(QtGui.QDockWidget, FORM_CLASS):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
+        self.fileOpened = {}
         self.setupUi(self)
+        self.setup_ui()
+
+    def setup_ui(self):
+        self.comboBox_alpha.hide()
+        self.checkBox_alpha.hide()
+        self.checkBox_noData.hide()
+        self.spinBox_noData.hide()
+        self.pushButton_save.hide()
+        # self.comboBox_red.currentIndexChanged[str].connect(self.loadComboBox)
+        # self.comboBox_green.currentIndexChanged[str].connect(self.loadComboBox)
+        # self.comboBox_blue.currentIndexChanged[str].connect(self.loadComboBox)
+
+
+
+    # def loadComboBox(self, text):
+    #     sender = QtCore.QObject.sender(self)
+    #     logger.info("QObject.sender() " + str(QtCore.QObject.sender(self)))
+    #     if text == "Load from file...":
+    #         settings = QtCore.QSettings()
+    #         lastFolder = settings.value("rasterDisplayComposer_lastFolder")
+    #
+    #         if lastFolder:
+    #             path = lastFolder
+    #         else:
+    #             path = QtCore.QDir.currentPath()
+    #
+    #         fileOpened = QtCore.QFileDialog.getOpenFileName(None, "Load a raster file", path)
+    #
+    #         settings.setValue("rasterDisplayComposer_lastFolder", os.path.dirname(fileOpened))
+    #         settings.sync()
+    #         self.fileOpened[os.path.basename(fileOpened):fileOpened]
+
+
 
     def closeEvent(self, event):
         self.closingPlugin.emit()
