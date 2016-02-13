@@ -306,9 +306,13 @@ class RasterDisplayComposer:
         if self.dockwidget.checkBox_alpha.isChecked():
             layers_to_append.append(self.loaded_raster_layers[self.dockwidget.comboBox_alpha.currentText()])
 
+        no_data_option = ""
+        if self.dockwidget.checkBox_noData.isChecked():
+            no_data_option = "-srcnodata " + str(self.dockwidget.spinBox_noData.value())
+
         print layers_to_append
 
-        command = ["gdalbuildvrt -separate", "/tmp/RasterDisplayComposer.VRT"] + layers_to_append
+        command = ["gdalbuildvrt -separate", no_data_option, "/tmp/RasterDisplayComposer.VRT"] + layers_to_append
         print " ".join(command)
         os.system(" ".join(command))
         rasterLayer = QgsRasterLayer("/tmp/RasterDisplayComposer.VRT", "RasterDisplayComposer")

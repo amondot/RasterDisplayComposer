@@ -21,7 +21,7 @@
     <item row="4" column="0">
      <widget class="QCheckBox" name="checkBox_noData">
       <property name="text">
-       <string>No data</string>
+       <string>Force no data</string>
       </property>
      </widget>
     </item>
