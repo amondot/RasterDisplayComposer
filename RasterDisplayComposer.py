@@ -261,6 +261,7 @@ class RasterDisplayComposer:
 
     def initDockWidgetSignals(self):
         self.dockwidget.pushButton_load.clicked.connect(self.loadRGBImage)
+        self.dockwidget.pushButton_refresh.clicked.connect(self.updateLoadedrasterLayers)
 
 
     def updateLoadedrasterLayers(self, layers_added = []):
