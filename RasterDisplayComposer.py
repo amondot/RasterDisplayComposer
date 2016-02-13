@@ -214,6 +214,7 @@ class RasterDisplayComposer:
             parent=self.iface.mainWindow())
         #QObject.connect(QgsMapLayerRegistry.instance(), SIGNAL(""), )
         QgsMapLayerRegistry.instance().layersAdded.connect(self.updateLoadedrasterLayers)
+        QgsMapLayerRegistry.instance().layerWillBeRemoved.connect(self.updateLoadedrasterLayers)
 
     #--------------------------------------------------------------------------
 
@@ -271,15 +272,24 @@ class RasterDisplayComposer:
         # print layers_added
         # print "self.iface.mapCanvas().layers()", self.iface.mapCanvas().layers()
         # print "legendInterface().layers()", self.iface.legendInterface().layers()
+        # print "updateLoadedRasterlayers"
         self.loaded_raster_layers = {}
 
-        for layer in self.iface.mapCanvas().layers() + layers_added:
+        try:
+            # case of layer added
+            load_list = self.iface.mapCanvas().layers() + layers_added
+        except TypeError:
+            # case of layer deleted
+            load_list = self.iface.mapCanvas().layers()
+
+        for layer in load_list:
             if layer.type() == layer.RasterLayer:
                 # print layer
                 # print layer.source()
                 # print layer.name()
                 # print layer.type()
                 self.loaded_raster_layers[layer.name()] = layer.source()
+        # print self.loaded_raster_layers
         self.loadComboBox()
 
 
@@ -292,6 +302,7 @@ class RasterDisplayComposer:
                           self.dockwidget.comboBox_blue, self.dockwidget.comboBox_alpha]:
             combo_box.clear()
             combo_box.addItems(self.loaded_raster_layers.keys())
+
 
     def loadRGBImage(self):
         """
