@@ -334,8 +334,8 @@ class RasterDisplayComposer:
         # print " ".join(command)
         # os.system(" ".join(command))
         root_vrt = createVRT(layers_to_append, no_data)
-        # rasterToLoad = '\'' + ET.tostring(root_vrt) + '\''
-        writeVRT(root_vrt, rasterToLoad)
+        rasterToLoad = '\'' + ET.tostring(root_vrt) + '\''
+        # writeVRT(root_vrt, rasterToLoad)
 
         band_name = self.dockwidget.lineEdit_bandName.text()
         rasterLayer = QgsRasterLayer(rasterToLoad, band_name)
