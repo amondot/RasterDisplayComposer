@@ -317,13 +317,15 @@ class RasterDisplayComposer:
         for combo_box in [self.dockwidget.comboBox_red, self.dockwidget.comboBox_green,
                           self.dockwidget.comboBox_blue]:
             layers_to_append.append(self.loaded_raster_layers[combo_box.currentText()])
-        print layers_to_append
+        # print layers_to_append
         if self.dockwidget.checkBox_alpha.isChecked():
             layers_to_append.append(self.loaded_raster_layers[self.dockwidget.comboBox_alpha.currentText()])
 
         no_data_option = ""
+        no_data = "a"
         if self.dockwidget.checkBox_noData.isChecked():
-            no_data_option = "-srcnodata " + str(self.dockwidget.spinBox_noData.value())
+            no_data = self.dockwidget.spinBox_noData.value()
+            no_data_option = "-srcnodata " + str(no_data)
 
         # print layers_to_append
 
@@ -331,7 +333,7 @@ class RasterDisplayComposer:
         # command = ["gdalbuildvrt -separate", no_data_option, rasterToLoad] + layers_to_append
         # print " ".join(command)
         # os.system(" ".join(command))
-        root_vrt = createVRT(layers_to_append)
+        root_vrt = createVRT(layers_to_append, no_data)
         # rasterToLoad = '\'' + ET.tostring(root_vrt) + '\''
         writeVRT(root_vrt, rasterToLoad)
 
@@ -344,7 +346,7 @@ class RasterDisplayComposer:
 
 def getInfoFromImage(image):
 
-    dicImage = {"image": image}
+    dicImage = {"image": image, "noData":"a"}
 
     dataset = gdal.Open(str(image), GA_ReadOnly)
     if dataset is not None:
@@ -364,13 +366,16 @@ def getInfoFromImage(image):
         #get info from band 1
         band = dataset.GetRasterBand(1)
         dicImage["dataType"]=gdal.GetDataTypeName(band.DataType)
-        dicImage["noData"]=band.GetNoDataValue()
+        if not band.GetNoDataValue():
+            dicImage["noData"]="a"
+        else:
+            dicImage["noData"]=band.GetNoDataValue()
 
     print dicImage
     return dicImage
 
 
-def createVRT(listOfImages):
+def createVRT(listOfImages, no_data = "a"):
     """
     Create the xml of the vrt to avoid file creation on disk
     :param listOfImages:
@@ -389,10 +394,11 @@ def createVRT(listOfImages):
         bandNode = ET.SubElement( rootNode, "VRTRasterBand", {'dataType':str(dataType), 'band': str( index+1 )} )
 
         #<NoDataValue>-100.0</NoDataValue>
-        no_data = infoFromImage["noData"]
-        if no_data:
+        if no_data == "a":
+            no_data = infoFromImage["noData"]
+        if no_data != "a":
             node = ET.SubElement(bandNode, 'NoDataValue')
-            node.text = no_data
+            node.text = str(no_data)
         # <SourceFilename relativeToVRT="1">nine_band.dat</SourceFilename>
         sourceNode = ET.SubElement(bandNode, 'SimpleSource')
 
