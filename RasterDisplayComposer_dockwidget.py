@@ -56,7 +56,6 @@ class RasterDisplayComposerDockWidget(QtGui.QDockWidget, FORM_CLASS):
     def setup_ui(self):
         self.comboBox_alpha.hide()
         self.checkBox_alpha.hide()
-        self.pushButton_save.hide()
         self.lineEdit_bandName.setText("RasterDisplayComposer")
         # self.comboBox_red.currentIndexChanged[str].connect(self.loadComboBox)
         # self.comboBox_green.currentIndexChanged[str].connect(self.loadComboBox)
