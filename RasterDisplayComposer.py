@@ -35,6 +35,7 @@ from RasterDisplayComposer_dockwidget import RasterDisplayComposerDockWidget
 import os.path
 from lxml import etree as ET
 
+
 class RasterDisplayComposer:
     """QGIS Plugin Implementation."""
 
@@ -73,7 +74,7 @@ class RasterDisplayComposer:
         self.toolbar = self.iface.addToolBar(u'RasterDisplayComposer')
         self.toolbar.setObjectName(u'RasterDisplayComposer')
 
-        #print "** INITIALIZING RasterDisplayComposer"
+        # print "** INITIALIZING RasterDisplayComposer"
 
         self.pluginIsActive = False
         self.dockwidget = None
@@ -81,8 +82,9 @@ class RasterDisplayComposer:
         self.loaded_raster_layers = {}
         self.dock_is_hiden = True
 
-        self.preLoad()
+        self.isLoaded = False
 
+        #self.preLoad()
 
     def preLoad(self):
         """
@@ -95,7 +97,7 @@ class RasterDisplayComposer:
         if not self.pluginIsActive:
             self.pluginIsActive = True
 
-            #print "** STARTING RasterDisplayComposer"
+            # print "** STARTING RasterDisplayComposer"
 
             # dockwidget may not exist if:
             #    first run of plugin
@@ -113,8 +115,8 @@ class RasterDisplayComposer:
             self.initDockWidgetSignals()
             self.updateLoadedrasterLayers()
             self.loadComboBox()
-
-
+            self.dockwidget.hide()
+            self.dock_is_hiden = True
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -131,18 +133,17 @@ class RasterDisplayComposer:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('RasterDisplayComposer', message)
 
-
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -205,7 +206,6 @@ class RasterDisplayComposer:
 
         return action
 
-
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -215,16 +215,16 @@ class RasterDisplayComposer:
             text=self.tr(u'Raster Display Composer'),
             callback=self.run,
             parent=self.iface.mainWindow())
-        #QObject.connect(QgsMapLayerRegistry.instance(), SIGNAL(""), )
+        # QObject.connect(QgsMapLayerRegistry.instance(), SIGNAL(""), )
         QgsMapLayerRegistry.instance().layersAdded.connect(self.updateLoadedrasterLayers)
         QgsMapLayerRegistry.instance().layerWillBeRemoved.connect(self.updateLoadedrasterLayers)
 
-    #--------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def onClosePlugin(self):
         """Cleanup necessary items here when plugin dockwidget is closed"""
 
-        #print "** CLOSING RasterDisplayComposer"
+        # print "** CLOSING RasterDisplayComposer"
 
         # disconnects
         self.dockwidget.closingPlugin.disconnect(self.onClosePlugin)
@@ -237,11 +237,10 @@ class RasterDisplayComposer:
 
         self.pluginIsActive = False
 
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
-        #print "** UNLOAD RasterDisplayComposer"
+        # print "** UNLOAD RasterDisplayComposer"
 
         for action in self.actions:
             self.iface.removePluginRasterMenu(
@@ -251,23 +250,26 @@ class RasterDisplayComposer:
         # remove the toolbar
         del self.toolbar
 
-    #--------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def run(self):
         """Run method that loads and starts the plugin"""
+        if not self.isLoaded:
+            self.preLoad()
+            self.isLoaded = True
 
         if self.dock_is_hiden:
             self.dockwidget.show()
+            self.dock_is_hiden = False
         else:
             self.dockwidget.hide()
-
+            self.dock_is_hiden = True
 
     def initDockWidgetSignals(self):
         self.dockwidget.pushButton_load.clicked.connect(self.loadRGBImage)
         self.dockwidget.pushButton_refresh.clicked.connect(self.updateLoadedrasterLayers)
 
-
-    def updateLoadedrasterLayers(self, layers_added = []):
+    def updateLoadedrasterLayers(self, layers_added=[]):
         """
         Re-write the dictionnary of loaded raster layers with new layers
         :param layers_added:
@@ -296,7 +298,6 @@ class RasterDisplayComposer:
         # print self.loaded_raster_layers
         self.loadComboBox()
 
-
     def loadComboBox(self):
         """
         Fill in the combobox with name of the loaded raster layers
@@ -306,7 +307,6 @@ class RasterDisplayComposer:
                           self.dockwidget.comboBox_blue, self.dockwidget.comboBox_alpha]:
             combo_box.clear()
             combo_box.addItems(self.loaded_raster_layers.keys())
-
 
     def loadRGBImage(self):
         """
@@ -343,17 +343,18 @@ class RasterDisplayComposer:
         else:
             rasterToLoad = '\'' + ET.tostring(root_vrt) + '\''
 
-
         band_name = self.dockwidget.lineEdit_bandName.text()
         rasterLayer = QgsRasterLayer(rasterToLoad, band_name)
 
         QgsMapLayerRegistry.instance().addMapLayer(rasterLayer)
 
-
-
     def getInfoFromImage(self, image):
-
-        dicImage = {"image": image, "noData":"a"}
+        """
+        Get information about image with GDAL python api
+        :param image:
+        :return: dictionnary with information
+        """
+        dicImage = {"image": image, "noData": "a"}
 
         dataset = gdal.Open(str(image), GA_ReadOnly)
         if dataset is not None:
@@ -364,25 +365,24 @@ class RasterDisplayComposer:
             if geotransform is not None:
                 dicImage["origin"] = [geotransform[0], geotransform[3]]
                 dicImage["pixelSize"] = [geotransform[1], geotransform[5]]
-                #dicImage["geotransform"] = geotransform
+                # dicImage["geotransform"] = geotransform
                 geoTransformListStr = [str(x) for x in geotransform]
                 dicImage["geotransform"] = ", ".join(geoTransformListStr)
             spatialReference = osr.SpatialReference()
             spatialReference.ImportFromWkt(dataset.GetProjectionRef())
             dicImage["intEpsgCode"] = str(spatialReference.GetAuthorityCode("PROJCS"))
-            #get info from band 1
+            # get info from band 1
             band = dataset.GetRasterBand(1)
-            dicImage["dataType"]=gdal.GetDataTypeName(band.DataType)
+            dicImage["dataType"] = gdal.GetDataTypeName(band.DataType)
             if not band.GetNoDataValue():
-                dicImage["noData"]="a"
+                dicImage["noData"] = "a"
             else:
-                dicImage["noData"]=band.GetNoDataValue()
+                dicImage["noData"] = band.GetNoDataValue()
 
         print dicImage
         return dicImage
 
-
-    def createVRT(self, listOfImages, no_data = "a"):
+    def createVRT(self, listOfImages, no_data="a"):
         """
         Create the xml of the vrt to avoid file creation on disk
         :param listOfImages:
@@ -390,17 +390,17 @@ class RasterDisplayComposer:
         """
         vrtFilename = None
         infoFromImage = self.getInfoFromImage(listOfImages[0])
-        rootNode = ET.Element( 'VRTDataset' )
+        rootNode = ET.Element('VRTDataset')
         totalXSize = infoFromImage["size"][0]
         totalYSize = infoFromImage["size"][1]
         dataType = infoFromImage["dataType"]
 
-        #for each band red green blue
+        # for each band red green blue
         for index, image in enumerate(listOfImages):
             #  <VRTRasterBand dataType="Byte" band="1">
-            bandNode = ET.SubElement( rootNode, "VRTRasterBand", {'dataType':str(dataType), 'band': str( index+1 )} )
+            bandNode = ET.SubElement(rootNode, "VRTRasterBand", {'dataType': str(dataType), 'band': str(index + 1)})
 
-            #<NoDataValue>-100.0</NoDataValue>
+            # <NoDataValue>-100.0</NoDataValue>
             if no_data == "a":
                 no_data = infoFromImage["noData"]
             if no_data != "a":
@@ -415,22 +415,27 @@ class RasterDisplayComposer:
             node = ET.SubElement(sourceNode, 'SourceBand')
             node.text = str(1)
             # <SrcRect xOff="0" yOff="0" xSize="1000" ySize="1000"/>
-            node = ET.SubElement(sourceNode, 'SrcRect', {'xOff': '0', 'yOff': '0', 'xSize': str(totalXSize), 'ySize': str(totalYSize)})
+            node = ET.SubElement(sourceNode, 'SrcRect',
+                                 {'xOff': '0', 'yOff': '0', 'xSize': str(totalXSize), 'ySize': str(totalYSize)})
             # <DstRect xOff="0" yOff="0" xSize="1000" ySize="1000"/>
-            node = ET.SubElement(sourceNode, 'DstRect', {'xOff': '0', 'yOff': '0', 'xSize': str(totalXSize), 'ySize': str(totalYSize)})
-            #bandNode.attrib['dataType'] = str(dataType)
+            node = ET.SubElement(sourceNode, 'DstRect',
+                                 {'xOff': '0', 'yOff': '0', 'xSize': str(totalXSize), 'ySize': str(totalYSize)})
+            # bandNode.attrib['dataType'] = str(dataType)
 
         rootNode.attrib['rasterXSize'] = str(totalXSize)
         rootNode.attrib['rasterYSize'] = str(totalYSize)
         node = ET.SubElement(rootNode, 'SRS')
-        node.text = "EPSG:" + str(infoFromImage["intEpsgCode"]) # projection
+        node.text = "EPSG:" + str(infoFromImage["intEpsgCode"])  # projection
 
         geotransformNode = ET.SubElement(rootNode, 'GeoTransform')
         geotransformNode.text = infoFromImage["geotransform"]
         return rootNode
 
-
     def getOutPutVRTFilename(self):
+        """
+        Get name of the output VRT. The folder of the output filename will be saved in settings for next time
+        :return: filename of the vrt
+        """
         settings = QSettings()
         lastFolder = settings.value("rasterDisplayComposer_vrtlastFolder")
 
@@ -445,7 +450,6 @@ class RasterDisplayComposer:
         settings.sync()
         return fileOpened
 
-
     def writeVRT(self, vrt_xml, output_filename):
         """
         Write the given xml in the given output_filename
@@ -455,6 +459,5 @@ class RasterDisplayComposer:
         """
         tree = ET.ElementTree(vrt_xml)
         f = open(output_filename, "w")
-        f.write(ET.tostring(tree, pretty_print = True))
+        f.write(ET.tostring(tree, pretty_print=True))
         f.close()
-

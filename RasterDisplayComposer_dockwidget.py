@@ -31,6 +31,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 # import loggin for debug messages
 import logging
+
 logging.basicConfig()
 # create logger
 logger = logging.getLogger('RasterDisplayComposer_dockWidget')
@@ -38,7 +39,6 @@ logger.setLevel(logging.INFO)
 
 
 class RasterDisplayComposerDockWidget(QtGui.QDockWidget, FORM_CLASS):
-
     closingPlugin = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -60,8 +60,6 @@ class RasterDisplayComposerDockWidget(QtGui.QDockWidget, FORM_CLASS):
         # self.comboBox_red.currentIndexChanged[str].connect(self.loadComboBox)
         # self.comboBox_green.currentIndexChanged[str].connect(self.loadComboBox)
         # self.comboBox_blue.currentIndexChanged[str].connect(self.loadComboBox)
-
-
 
     # def loadComboBox(self, text):
     #     sender = QtCore.QObject.sender(self)
@@ -86,4 +84,3 @@ class RasterDisplayComposerDockWidget(QtGui.QDockWidget, FORM_CLASS):
     def closeEvent(self, event):
         self.closingPlugin.emit()
         event.accept()
-
