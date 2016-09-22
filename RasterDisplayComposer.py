@@ -321,25 +321,26 @@ class RasterDisplayComposer:
         # print "self.iface.mapCanvas().layers()", self.iface.mapCanvas().layers()
         # print "legendInterface().layers()", self.iface.legendInterface().layers()
         # print "updateLoadedRasterlayers"
-        logger.debug("updateLoadedrasterLayers")
-        self.loaded_raster_layers = {}
+        if self.isLoaded:
+            logger.debug("updateLoadedrasterLayers")
+            self.loaded_raster_layers = {}
 
-        try:
-            # case of layer added
-            load_list = self.iface.mapCanvas().layers() + layers_added
-        except TypeError:
-            # case of layer deleted
-            load_list = self.iface.mapCanvas().layers()
+            try:
+                # case of layer added
+                load_list = self.iface.mapCanvas().layers() + layers_added
+            except TypeError:
+                # case of layer deleted
+                load_list = self.iface.mapCanvas().layers()
 
-        for layer in load_list:
-            if layer.type() == layer.RasterLayer:
-                # print layer
-                # print layer.source()
-                # print layer.name()
-                # print layer.type()
-                self.loaded_raster_layers[layer.name()] = layer.source()
-        # print self.loaded_raster_layers
-        self.loadComboBox()
+            for layer in load_list:
+                if layer.type() == layer.RasterLayer:
+                    # print layer
+                    # print layer.source()
+                    # print layer.name()
+                    # print layer.type()
+                    self.loaded_raster_layers[layer.name()] = layer.source()
+            # print self.loaded_raster_layers
+            self.loadComboBox()
 
     def loadComboBox(self):
         """
