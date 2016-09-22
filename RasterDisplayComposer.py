@@ -35,6 +35,42 @@ from RasterDisplayComposer_dockwidget import RasterDisplayComposerDockWidget
 import os.path
 from lxml import etree as ET
 
+import logging
+import logging.config
+
+
+logging.config.dictConfig({
+    'version': 1,
+    'formatters': {
+        'verbose': {'format' : '%(asctime)s - %(filename)s - line %(lineno)d - %(module)s:%(funcName)s - %(levelname)s - %(message)s'},
+        'console': {'format': '%(asctime)s - %(levelname)s - %(message)s', 'datefmt': '%Y-%m-%d %H:%M:%S'}
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+            'stream': 'ext://sys.stdout'
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'verbose',
+            'filename': "/tmp/RasterDisplayComposer.log",
+            'maxBytes': 1048576,
+            'backupCount': 3
+        }
+    },
+    'loggers': {
+        'default': {
+            'level': 'INFO',
+            'handlers': ['console', 'file']
+        }
+    },
+    'disable_existing_loggers': False
+})
+logger = logging.getLogger('default')
+
 
 class RasterDisplayComposer:
     """QGIS Plugin Implementation."""
@@ -80,7 +116,7 @@ class RasterDisplayComposer:
         self.dockwidget = None
 
         self.loaded_raster_layers = {}
-        self.dock_is_hiden = True
+        self.dock_is_hidden = True
 
         self.isLoaded = False
 
@@ -94,6 +130,7 @@ class RasterDisplayComposer:
         """
         :return:
         """
+        logger.debug("plugin is active: {}".format(self.pluginIsActive))
         if not self.pluginIsActive:
             self.pluginIsActive = True
 
@@ -113,10 +150,10 @@ class RasterDisplayComposer:
             # TODO: fix to allow choice of dock location
             self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.dockwidget)
             self.initDockWidgetSignals()
-            self.updateLoadedrasterLayers()
             self.loadComboBox()
+            self.updateLoadedrasterLayers()
             self.dockwidget.hide()
-            self.dock_is_hiden = True
+            self.dock_is_hidden = True
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -208,7 +245,7 @@ class RasterDisplayComposer:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
+        logger.debug("Init GUI")
         icon_path = ':/plugins/RasterDisplayComposer/icon.png'
         self.add_action(
             icon_path,
@@ -218,6 +255,7 @@ class RasterDisplayComposer:
         # QObject.connect(QgsMapLayerRegistry.instance(), SIGNAL(""), )
         QgsMapLayerRegistry.instance().layersAdded.connect(self.updateLoadedrasterLayers)
         QgsMapLayerRegistry.instance().layerWillBeRemoved.connect(self.updateLoadedrasterLayers)
+        logger.debug("Init GUI ok")
 
     # --------------------------------------------------------------------------
 
@@ -254,18 +292,22 @@ class RasterDisplayComposer:
 
     def run(self):
         """Run method that loads and starts the plugin"""
+        logger.debug("Run")
+        logger.debug("self.isLoaded {}".format(self.isLoaded))
+        logger.debug("self.dock_is_hidden {}".format(self.dock_is_hidden))
         if not self.isLoaded:
             self.preLoad()
             self.isLoaded = True
 
-        if self.dock_is_hiden:
+        if self.dock_is_hidden:
             self.dockwidget.show()
-            self.dock_is_hiden = False
+            self.dock_is_hidden = False
         else:
             self.dockwidget.hide()
-            self.dock_is_hiden = True
+            self.dock_is_hidden = True
 
     def initDockWidgetSignals(self):
+        logger.debug("initDockWidgetSignals")
         self.dockwidget.pushButton_load.clicked.connect(self.loadRGBImage)
         self.dockwidget.pushButton_refresh.clicked.connect(self.updateLoadedrasterLayers)
 
@@ -279,6 +321,7 @@ class RasterDisplayComposer:
         # print "self.iface.mapCanvas().layers()", self.iface.mapCanvas().layers()
         # print "legendInterface().layers()", self.iface.legendInterface().layers()
         # print "updateLoadedRasterlayers"
+        logger.debug("updateLoadedrasterLayers")
         self.loaded_raster_layers = {}
 
         try:
@@ -303,6 +346,7 @@ class RasterDisplayComposer:
         Fill in the combobox with name of the loaded raster layers
         :return:
         """
+        logger.debug("loadComboBox")
         for combo_box in [self.dockwidget.comboBox_red, self.dockwidget.comboBox_green,
                           self.dockwidget.comboBox_blue, self.dockwidget.comboBox_alpha]:
             combo_box.clear()
@@ -313,6 +357,7 @@ class RasterDisplayComposer:
         Get path of selected images, run gdalbuildvrt and loa the result in qgis
         :return:
         """
+        logger.debug("loadRGBImage")
         layers_to_append = []
         for combo_box in [self.dockwidget.comboBox_red, self.dockwidget.comboBox_green,
                           self.dockwidget.comboBox_blue]:
@@ -354,6 +399,7 @@ class RasterDisplayComposer:
         :param image:
         :return: dictionnary with information
         """
+        logger.debug("getInfoFromImage")
         dicImage = {"image": image, "noData": "a"}
 
         dataset = gdal.Open(str(image), GA_ReadOnly)
@@ -388,6 +434,7 @@ class RasterDisplayComposer:
         :param listOfImages:
         :return:
         """
+        logger.debug("createVRT")
         vrtFilename = None
         infoFromImage = self.getInfoFromImage(listOfImages[0])
         rootNode = ET.Element('VRTDataset')
@@ -436,6 +483,7 @@ class RasterDisplayComposer:
         Get name of the output VRT. The folder of the output filename will be saved in settings for next time
         :return: filename of the vrt
         """
+        logger.debug("getOutPutVRTFilename")
         settings = QSettings()
         lastFolder = settings.value("rasterDisplayComposer_vrtlastFolder")
 
@@ -457,6 +505,7 @@ class RasterDisplayComposer:
         :param output_filename:
         :return:
         """
+        logger.debug("writeVRT")
         tree = ET.ElementTree(vrt_xml)
         f = open(output_filename, "w")
         f.write(ET.tostring(tree, pretty_print=True))
