@@ -70,7 +70,14 @@
      </widget>
     </item>
     <item row="4" column="1">
-     <widget class="QSpinBox" name="spinBox_noData"/>
+     <widget class="QSpinBox" name="spinBox_noData">
+      <property name="minimum">
+       <number>-65536</number>
+      </property>
+      <property name="maximum">
+       <number>65536</number>
+      </property>
+     </widget>
     </item>
     <item row="6" column="0">
      <widget class="QPushButton" name="pushButton_refresh">
