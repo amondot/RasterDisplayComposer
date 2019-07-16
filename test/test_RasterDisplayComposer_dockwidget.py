@@ -10,11 +10,11 @@
 
 __author__ = 'contact@mondot.fr'
 __date__ = '2016-02-13'
-__copyright__ = 'Copyright 2016, Alexia Mondot'
+__copyright__ = 'Copyright 2019, Alexia Mondot'
 
 import unittest
 
-from PyQt4.QtGui import QDockWidget
+from qgis.PyQt.QtGui import QDockWidget
 
 from RasterDisplayComposer_dockwidget import RasterDisplayComposerDockWidget
 
