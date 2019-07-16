@@ -431,7 +431,7 @@ class RasterDisplayComposer:
         else:
             path = QDir.currentPath()
 
-        fileOpened = QFileDialog.getOpenFileName(None, "Load a raster file", path)
+        fileOpened = QFileDialog.getSaveFileName(None, "Enter output filename", path)
 
         settings.setValue("rasterDisplayComposer_vrtlastFolder", os.path.dirname(fileOpened))
         settings.sync()
